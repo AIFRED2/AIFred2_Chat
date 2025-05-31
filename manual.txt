@@ -1,0 +1,141 @@
+**Manual Virtual – FrED Factory Device**
+
+---
+
+### ¿Qué encontrarás en este manual?
+
+1. **Conexiones físicas**
+2. **Configuración del código**
+
+   * Arduino (.ino + librerías)
+   * Thinger (terminales Python)
+3. **Fallos recurrentes y soluciones**
+4. **Contacto**
+
+---
+
+## 1. Conexiones físicas
+
+**Componentes necesarios:**
+
+* FrED Device (+ cable de corriente)
+* Raspberry Pi (+ cable de corriente)
+* Arduino Mega (+ cable de corriente, alimentado desde la Raspberry Pi)
+* TV (monitor)
+* Teclado y ratón USB
+* Cable HDMI
+
+**Pasos de conexión:**
+
+1. Asegúrate de tener todos los componentes listos.
+2. Sin conectar aún el FrED Device a la corriente, monta los cables así:
+
+   * **FrED Device** → socket de alimentación (no enchufar aún).
+   * **FrED Device** → **Arduino Mega** (Shield).
+   * **Arduino Mega** → **Raspberry Pi** (por USB).
+   * **Raspberry Pi** → **TV** (por HDMI).
+   * **Raspberry Pi** → **Teclado y ratón** (puertos USB).
+3. Verifica que, sin enchufar el FrED, el LED verde del Shield del Arduino esté encendido.
+
+   * Esto indica que la Raspberry Pi está proveyendo energía al Arduino.
+4. Finalmente, conecta a la corriente el FrED Device.
+
+---
+
+## 2. Configuración del código
+
+### 2.1 Código Arduino
+
+* El archivo principal es `*.ino`.
+* Las librerías propias (por ejemplo `thermistor.h`, `pin_map.h`) deben pegarse en páginas nuevas en el mismo proyecto de Arduino:
+
+  1. Abrir el `.ino`.
+  2. Añadir nueva pestaña, pegar el contenido de `thermistor` y nombrarla `thermistor.h`.
+  3. Repetir para `pin_map.h` u otras librerías del **FrED Factory Team**.
+* Compilar y subir al Arduino Mega (asegúrate de que aparece el LED verde).
+
+### 2.2 Código para Thinger (interfaz en terminal)
+
+**Requisitos:** tener instalados Arduino IDE y la terminal Terminator.
+
+1. Abre una sesión de terminal en la carpeta `Terminal_code/`.
+2. Divide tu sesión en **tres** terminales, todas en `Terminal_code/`.
+
+   * **Terminal 1**:
+
+     ```bash
+     python3 lib_iot/serial_manager.py
+     ```
+
+     → Debe mostrar “Esperando conexion…”
+
+   * **Terminal 2**:
+
+     ```bash
+     python3 lib_sd/diameter_sensor.py
+     ```
+
+     → Debe mostrar “Esperando conexion…”
+
+   * **Terminal 3**:
+
+     ```bash
+     bash lib_iot/thinger_client/run.sh
+     ```
+
+     → Lanza el cliente Thinger y conecta todo.
+
+---
+
+## 3. Fallos recurrentes y soluciones
+
+### 3.1 Error al cargar el código en Arduino
+
+* **Causa:** Arduino no alimentado por la Raspberry Pi.
+* **Solución:**
+
+  1. Desconecta Arduino de corriente directa.
+  2. Verifica que el LED verde del Shield esté encendido (alimentación desde la Pi).
+  3. En la terminal, ejecuta:
+
+     ```bash
+     python -m serial.tools.list_ports -v
+     ```
+
+     para identificar el puerto correcto.
+  4. Selecciona ese puerto en el IDE de Arduino o en `serial_manager.py`.
+
+### 3.2 Error en `serial_manager.py`
+
+* **Causa:** Puerto mal configurado (por ejemplo `/dev/tty0` vs `/dev/tty1`).
+* **Solución:**
+
+  * Edita `lib_iot/serial_manager.py` o ajusta en Thonny/VsCode el valor del puerto y vuelve a ejecutar.
+
+### 3.3 El script `run.sh` se detiene solo
+
+* **Causa:** Conexión inestable a Internet (red del Tec).
+* **Solución:**
+
+  * Conéctate a un **hotspot externo** antes de ejecutar `run.sh`.
+  * Vuelve a subir el script.
+
+### 3.4 Todo conectado pero no responde en Thinger
+
+* **Causa:** Shield de Arduino sin energía.
+* **Solución:**
+
+  1. Asegúrate de que el Arduino recibe corriente de la Pi (LED verde).
+  2. Recarga la página de Thinger después de confirmar energía.
+
+---
+
+## 4. Contacto
+
+Para más información o soporte:
+**Leonardo Andrade Flores**
+A01174639
+
+---
+
+*Este texto está listo para inyectarse como contexto base en tu chatbot.*
