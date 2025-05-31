@@ -1,7 +1,7 @@
 {
   "name": "aifred2chatbot",
   "version": "1.0.0",
-  "description": "Frontend y función serverless para AIFred2 Chatbot",
+  "description": "Función serverless + frontend CSV Chatbot",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
