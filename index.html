@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AIFrEd2</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+    body {
+      background: #f2f4f6;
+    }
+
+    /* === HEADER === */
+    header.site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border-radius: 10px;
+    }
+    header.site-header img {
+      height: 40px;
+    }
+    header.site-header h1 {
+      font-size: 24px;
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      max-width: 1200px;
+      margin: auto;
+      gap: 20px;
+      padding-bottom: 40px;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      flex: 1;
+    }
+
+    /* Ajuste para los títulos de panel */
+    .panel h2 {
+      margin-top: 8px;    /* reduce el espacio superior */
+      margin-bottom: 16px;
+      font-size: 20px;
+      color: #222;
+    }
+
+    /* ==== DROP AREA ESTILOS ==== */
+    #drop-area {
+      position: relative;
+      border: 2px dashed #ccc;
+      border-radius: 6px;
+      padding: 60px 20px;
+      text-align: center;
+      color: #666;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #drop-area.dragover {
+      background: #e8f0fe;
+      border-color: #4a90e2;
+    }
+    #fileElem {
+      display: none;
+    }
+
+    /* Clase para la imagen FrED debajo del input */
+    .frED-image {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 20 auto 0 auto; /* 20px de espacio encima, centrada */
+    }
+
+    /* ==== CHAT ESTILOS ==== */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+    #chat-window {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 12px;
+      background: #fafafa;
+    }
+    .message {
+      margin: 8px 0;
+      padding: 10px 14px;
+      border-radius: 6px;
+      max-width: 80%;
+    }
+    .message.user {
+      background: #daf1da;
+      align-self: flex-end;
+    }
+    .message.bot {
+      background: #eee;
+      align-self: flex-start;
+    }
+    #input-area {
+      display: flex;
+      margin-top: 12px;
+    }
+    #chat-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    #send-btn {
+      margin-left: 8px;
+      padding: 0 20px;
+      border: none;
+      background: #4a90e2;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #send-btn:disabled {
+      background: #aac4e0;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER CON LOGO -->
+  <header class="site-header">
+    <img src="logotec.png" alt="Logo de la Empresa">
+    <h1>AIFred2 Chat with me</h1>
+  </header>
+
+  <div class="container">
+    <!-- PANEL IZQUIERDO: CSV -->
+    <div class="panel">
+      <h2>Subir Archivo CSV</h2>
+      <div id="drop-area">
+        <p style="font-size:18px; margin-bottom:8px;">Arrastra tu archivo CSV de Datos aquí</p>
+        <p style="color:#999;">o haz clic para seleccionar</p>
+      </div>
+      <input type="file" id="fileElem" accept=".csv" />
+
+      <!-- Imagen FrED justo debajo del input de CSV -->
+      <img src="FrED.png" alt="Ilustración FrED Device" class="frED-image" />
+    </div>
+
+    <!-- PANEL DERECHO: CHAT -->
+    <div class="panel chat-container">
+      <h2>Chat con tus Datos</h2>
+      <div id="chat-window">
+        <div style="color:#999; text-align:center; margin-top:40px;">
+          ¡Hola! Sube un CSV con los datos de funcionamiento y haz preguntas.<br/>
+          Por ejemplo: “¿Cuántas filas hay?” o “¿Cuál es el promedio de temperatura?”
+        </div>
+      </div>
+      <div id="input-area">
+        <input type="text" id="chat-input" placeholder="Escribe tu pregunta..." disabled/>
+        <button id="send-btn" disabled>Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1) CARGAR MANUAL EN BACKGROUND
+    let manualText = '';
+    fetch('manual.txt')
+      .then(res => res.text())
+      .then(txt => { manualText = txt; })
+      .catch(err => console.warn('Error cargando manual.txt:', err));
+
+    // 2) CSV UPLOAD
+    const dropArea = document.getElementById('drop-area');
+    const fileElem = document.getElementById('fileElem');
+    let csvData = '';
+
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+      dropArea.addEventListener(ev, e => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (ev === 'dragover') dropArea.classList.add('dragover');
+        if (ev === 'dragleave' || ev === 'drop') dropArea.classList.remove('dragover');
+      });
+    });
+    dropArea.addEventListener('click', () => fileElem.click());
+    dropArea.addEventListener('drop', e => handleFiles({ target: { files: e.dataTransfer.files } }));
+    fileElem.addEventListener('change', handleFiles);
+
+    function handleFiles(e) {
+      const file = e.target.files[0];
+      if (!file || !file.name.endsWith('.csv')) {
+        return alert('Selecciona un archivo .csv');
+      }
+      const reader = new FileReader();
+      reader.onload = evt => {
+        csvData = evt.target.result;
+        dropArea.innerHTML = `<strong>${file.name}</strong>`;
+        enableChat();
+      };
+      reader.readAsText(file);
+    }
+    function enableChat() {
+      document.getElementById('chat-input').disabled = false;
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('chat-window').innerHTML = '';
+    }
+
+    // 3) CHAT
+    const chatWindow = document.getElementById('chat-window');
+    const chatInput  = document.getElementById('chat-input');
+    const sendBtn    = document.getElementById('send-btn');
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function appendMessage(who, text) {
+      const div = document.createElement('div');
+      div.classList.add('message', who);
+      div.textContent = text;
+      chatWindow.append(div);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const pregunta = chatInput.value.trim();
+      if (!pregunta) return;
+      appendMessage('user', pregunta);
+      chatInput.value = '';
+      appendMessage('bot', '…');
+
+      // Construir prompts igual que antes
+      const systemPrompt = `
+        Eres un asistente amigable llamado AIFred y experto en el contenido de este manual técnico. Tu tarea es:
+        1. Consultar únicamente la información que aparece en el manual (no inventes ni agregues contenido externo).
+        2. No repitas párrafos enteros: busca en el manual los datos relevantes, luego sintetiza y explica la respuesta con tus propias palabras.
+        3. Habla en un tono cordial y fácil de entender, como si estuvieras ayudando a un compañero.
+        4. Si la pregunta no se relaciona con el manual, indícalo de manera amable y sugiere posibles secciones donde podría encontrarse la respuesta.
+        
+        Aquí está el manual completo:
+        ${manualText}
+      `;
+
+      const csvPrompt = `
+        Aquí tienes los datos CSV. Úsalos únicamente si la pregunta requiere análisis numérico o estadísticas:
+        ${csvData}
+      `;
+
+      const messages = [
+        { role:'system', content: systemPrompt },
+        { role:'user',   content: csvPrompt },
+        { role:'user',   content: pregunta }
+      ];
+
+      try {
+        // 4) Invocar a la función serverless en Netlify en lugar de OpenRouter directamente:
+        const res = await fetch('/.netlify/functions/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages })
+        });
+
+        const { choices } = await res.json();
+        const respuesta = choices?.[0]?.message?.content.trim() || 'Sin respuesta';
+        const last = chatWindow.querySelector('.message.bot:last-child');
+        last.textContent = respuesta;
+
+      } catch (err) {
+        const last = chatWindow.querySelector('.message.bot:last-child');
+        last.textContent = `Error: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
