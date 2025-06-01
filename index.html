@@ -281,25 +281,54 @@ ${csvData}
     ];
 
     try {
-      // 5) Invocar a tu función serverless en Netlify (proxy a OpenRouter)
+      // 5) Invocar a tu función serverless en Netlify
       const res = await fetch('/.netlify/functions/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages })
       });
 
-      // 6) Esperar la respuesta de la función y extraer JSON
+      // 6) Verificar el status HTTP
+      if (!res.ok) {
+        // Si la función devolvió un código distinto de 2xx, tratamos de extraer un mensaje de error JSON
+        let errorMsg = `Serverless devolvió ${res.status}`;
+        try {
+          const errJson = await res.json();
+          if (errJson?.error) {
+            errorMsg = errJson.error;
+          }
+        } catch {
+          // Si no vino JSON, leemos texto plano
+          const text = await res.text();
+          if (text) errorMsg = text;
+        }
+        throw new Error(errorMsg);
+      }
+
+      // 7) Verificar el encabezado Content-Type antes de hacer res.json()
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.toLowerCase().includes('application/json')) {
+        // Si no es JSON, leemos texto y lo mostramos como error
+        const txt = await res.text();
+        throw new Error(txt || 'El servidor devolvió algo inesperado (no JSON).');
+      }
+
+      // 8) Convertir la respuesta del servidor a JSON
       const json = await res.json();
+      console.log('Frontend recibió:', json);
+
+      // 9) Extraer el mensaje de choices o, en su defecto, “Sin respuesta”
       const respuesta = json?.choices?.[0]?.message?.content.trim() || 'Sin respuesta';
 
-      // 7) Mostrar la respuesta en pantalla (reemplazando el “…” que agregamos antes)
+      // 10) Mostrar la respuesta en pantalla (reemplazando el “…” que agregamos antes)
       const lastBot = chatWindow.querySelector('.message.bot:last-child');
       lastBot.textContent = respuesta;
 
     } catch (err) {
-      // 8) En caso de error (función caída, sin respuesta, etc.), lo mostramos en pantalla
+      // 11) En caso de error (función caída, 401, etc.), lo mostramos en pantalla
       const lastBot = chatWindow.querySelector('.message.bot:last-child');
       lastBot.textContent = `Error: ${err.message}`;
+      console.error('Error en sendMessage():', err);
     }
   }
 </script>
